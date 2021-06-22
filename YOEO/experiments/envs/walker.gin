@@ -1,0 +1,9 @@
+# Walker2d
+gamma = 0.99
+ob_dim = 17
+ac_dim = 6
+ac_dim_times_2 = 12
+ob_dim_plus_ac_dim = 23
+ac_scale = 1.
+
+test_envs = ['walker2d-random-v0','walker2d-medium-replay-v0','walker2d-medium-v0','walker2d-expert-v0']

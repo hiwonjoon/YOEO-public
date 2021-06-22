@@ -1,0 +1,9 @@
+# Pen
+gamma = 0.99
+ob_dim = 45
+ac_dim = 24
+ac_dim_times_2 = 48
+ob_dim_plus_ac_dim = 69
+ac_scale = 1.
+
+test_envs = ['pen-human-v0','pen-cloned-v0','pen-expert-v0']

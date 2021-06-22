@@ -1,0 +1,9 @@
+# Door
+gamma = 0.99
+ob_dim = 39
+ac_dim = 28
+ac_dim_times_2 = 78
+ob_dim_plus_ac_dim = 67
+ac_scale = 1.
+
+test_envs = ['door-human-v0','door-cloned-v0','door-expert-v0']

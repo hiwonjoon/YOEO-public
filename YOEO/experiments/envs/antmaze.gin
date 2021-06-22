@@ -1,0 +1,9 @@
+# AntMaze
+gamma = 0.99
+ob_dim = 29
+ac_dim = 8
+ac_dim_times_2 = 16
+ob_dim_plus_ac_dim = 37
+ac_scale = 1.
+
+test_envs = []

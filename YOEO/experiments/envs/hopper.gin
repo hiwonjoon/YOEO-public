@@ -1,0 +1,9 @@
+# Hopper
+gamma = 0.99
+ob_dim = 11
+ac_dim = 3
+ac_dim_times_2 = 6
+ob_dim_plus_ac_dim = 14
+ac_scale = 1.
+
+test_envs = ['hopper-random-v0','hopper-medium-replay-v0','hopper-medium-v0','hopper-expert-v0']

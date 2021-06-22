@@ -1,0 +1,9 @@
+# Relocate
+gamma = 0.99
+ob_dim = 39
+ac_dim = 30
+ac_dim_times_2 = 78
+ob_dim_plus_ac_dim = 69
+ac_scale = 1.
+
+test_envs = ['relocate-human-v0','relocate-cloned-v0','relocate-expert-v0']

@@ -1,0 +1,65 @@
+# State Value Distribution Training
+import YOEO.scripts.value_training
+import YOEO.modules.d4rl_utils
+import YOEO.modules.reverb_replay_buffer
+import YOEO.algo.state_value_distribution
+import YOEO.modules.mlp
+import YOEO.modules.quantile_regression
+import YOEO.modules.optimizer
+
+env_id = None # provide via command-line
+num_ensembles = 5
+
+# Dataset
+YOEO.modules.d4rl_utils.D4RL_Dataset.env_id = %env_id
+YOEO.modules.d4rl_utils.D4RL_Dataset.gamma = %gamma
+YOEO.modules.d4rl_utils.D4RL_Dataset.train_ratio = 0.9
+
+YOEO.modules.d4rl_utils.D4RL_Dataset.t_0_batch.batch_size = 1000
+YOEO.modules.d4rl_utils.D4RL_Dataset.eval_batch.batch_size = 1000
+
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.n_steps = 10
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.save_chkpt = True
+
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.prepare_dataset.batch_size = 100
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.prepare_dataset.type = 'all'
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.prepare_dataset.window_size = %num_ensembles
+
+# State Value Distribution
+feature_dim = 64
+
+Y_Psi/YOEO.modules.mlp.MLP.num_layers = 2
+Y_Psi/YOEO.modules.mlp.MLP.dim = 256
+Y_Psi/YOEO.modules.mlp.MLP.in_dim = %ob_dim
+Y_Psi/YOEO.modules.mlp.MLP.out_dim = %feature_dim
+
+Y_Phi/YOEO.modules.quantile_regression.CosineBasedPhi.n = 64
+Y_Phi/YOEO.modules.quantile_regression.CosineBasedPhi.d = %feature_dim
+
+Y_F/YOEO.modules.mlp.MLP.num_layers = 2
+Y_F/YOEO.modules.mlp.MLP.dim = 256
+Y_F/YOEO.modules.mlp.MLP.in_dim = %feature_dim
+Y_F/YOEO.modules.mlp.MLP.out_dim = 1
+
+Y/modules.optimizer.AdamOptimizer.lr = 1e-4
+
+YOEO.algo.state_value_distribution.Y.Psi = @Y_Psi/YOEO.modules.mlp.MLP
+YOEO.algo.state_value_distribution.Y.Phi = @Y_Phi/YOEO.modules.quantile_regression.CosineBasedPhi
+YOEO.algo.state_value_distribution.Y.F = @Y_F/YOEO.modules.mlp.MLP
+YOEO.algo.state_value_distribution.Y.build_target_net = True
+
+YOEO.algo.state_value_distribution.Y.prepare_update.N_i = 16
+YOEO.algo.state_value_distribution.Y.prepare_update.N_j = 16
+YOEO.algo.state_value_distribution.Y.prepare_update.kappa = 1.0
+YOEO.algo.state_value_distribution.Y.prepare_update.polyak = 0.995
+YOEO.algo.state_value_distribution.Y.prepare_update.Optimizer = @Y/modules.optimizer.AdamOptimizer
+
+YOEO.algo.state_value_distribution.Y_Ensemble.num_ensembles = %num_ensembles
+YOEO.algo.state_value_distribution.Y_Ensemble.prepare_update.use_different_batch = True
+
+# Training
+YOEO.scripts.value_training.run.Value = @YOEO.algo.state_value_distribution.Y_Ensemble
+YOEO.scripts.value_training.run.Dataset = @YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb
+YOEO.scripts.value_training.run.num_updates = 1000000
+YOEO.scripts.value_training.run.save_period = 100000
+YOEO.scripts.value_training.run.eval_period = 100000

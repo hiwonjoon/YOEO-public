@@ -1,0 +1,86 @@
+# Ablation Study: Q^\beta Training
+
+import YOEO.scripts.offline_rl
+import YOEO.modules.d4rl_utils
+import YOEO.modules.reverb_replay_buffer
+import YOEO.algo.state_value_distribution
+import YOEO.algo.value_function
+import YOEO.modules.mlp
+import YOEO.modules.quantile_regression
+import YOEO.modules.deterministic_policy
+import YOEO.modules.optimizer
+
+env_id = None # provide via command-line
+num_ensembles = 5
+
+######################
+# Training
+######################
+YOEO.scripts.offline_rl.run.Algo = @YOEO.algo.value_function.Qbeta
+YOEO.scripts.offline_rl.run.Dataset = @YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb
+
+YOEO.scripts.offline_rl.run.num_updates = 1_000_000 # 3e5, 3e6
+YOEO.scripts.offline_rl.run.log_period = 100
+YOEO.scripts.offline_rl.run.save_period = 100_000
+YOEO.scripts.offline_rl.run.run_period = 1_000_000
+YOEO.scripts.offline_rl.run.eval_period = 100_000
+YOEO.scripts.offline_rl.run.num_bc_updates = None # (None: without BC)
+
+YOEO.scripts.offline_rl.prepare_eval.eval_env_id = %env_id
+YOEO.scripts.offline_rl.prepare_eval.eval_policies = ['pi','np_policy']
+
+######################
+# Dataset
+######################
+YOEO.modules.d4rl_utils.D4RL_Dataset.env_id = %env_id
+YOEO.modules.d4rl_utils.D4RL_Dataset.gamma = %gamma
+YOEO.modules.d4rl_utils.D4RL_Dataset.train_ratio = 0.9
+
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.n_steps = 10
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.save_chkpt = True
+
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.prepare_dataset.batch_size = 100
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.prepare_dataset.type = 'all'
+YOEO.modules.reverb_replay_buffer.D4RL_Dataset_Reverb.prepare_dataset.window_size = %num_ensembles
+
+#####################
+# Valid Q
+#####################
+YOEO.algo.value_function.ValidQbeta.num_ensembles = %num_ensembles
+YOEO.algo.value_function.ValidQbeta.ActionValue = @YOEO.algo.value_function.ActionValue
+YOEO.algo.value_function.ValidQbeta.Policy = @YOEO.modules.deterministic_policy.DeterministicPolicy
+YOEO.algo.value_function.ValidQbeta.build_np_policy = True
+
+YOEO.algo.value_function.Qbeta.prepare_update.use_different_batch = True
+YOEO.algo.value_function.Qbeta.prepare_update.Optimizer = @Q/modules.optimizer.AdamOptimizer
+YOEO.algo.value_function.Qbeta.prepare_update.polyak_coeff = 0.995
+
+######################
+# Q Network Setting
+######################
+Q/YOEO.modules.mlp.MLP.num_layers = 2
+Q/YOEO.modules.mlp.MLP.in_dim = %ob_dim_plus_ac_dim
+Q/YOEO.modules.mlp.MLP.dim = 256
+Q/YOEO.modules.mlp.MLP.activation = 'swish'
+Q/YOEO.modules.mlp.MLP.out_dim = 1
+
+Q/modules.optimizer.AdamOptimizer.lr = 3e-4
+
+YOEO.algo.value_function.ActionValue.Net = @Q/YOEO.modules.mlp.MLP
+YOEO.algo.value_function.ActionValue.build_target_net = True
+YOEO.algo.value_function.ActionValue.td_loss.huber = True
+
+######################
+# Policy Network Setting
+######################
+
+pi/YOEO.modules.mlp.MLP.num_layers = 2
+pi/YOEO.modules.mlp.MLP.in_dim = %ob_dim
+pi/YOEO.modules.mlp.MLP.dim = 256
+pi/YOEO.modules.mlp.MLP.activation = 'swish'
+pi/YOEO.modules.mlp.MLP.out_dim = %ac_dim
+
+YOEO.modules.deterministic_policy.DeterministicPolicy.Net = @pi/modules.mlp.MLP
+YOEO.modules.deterministic_policy.DeterministicPolicy.scale = %ac_scale
+YOEO.modules.deterministic_policy.prepare_update.learning_rate = 3e-4
+YOEO.modules.deterministic_policy.prepare_update.reduce = 'min'

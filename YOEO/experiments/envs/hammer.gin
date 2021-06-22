@@ -1,0 +1,9 @@
+# Hammer
+gamma = 0.99
+ob_dim = 46
+ac_dim = 26
+ac_dim_times_2 = 92
+ob_dim_plus_ac_dim = 72
+ac_scale = 1.
+
+test_envs = ['hammer-human-v0','hammer-cloned-v0','hammer-expert-v0']
